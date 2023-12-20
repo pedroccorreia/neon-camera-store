@@ -1,0 +1,24 @@
+
+# Product recognition navigation controls
+PRODUCT_RECOGNITION_PAGE_TYPE_KEY = 'pr_page_type'
+PRODUCT_RECOGNITION_PAGE_TYPE_LIST = 'list'
+PRODUCT_RECOGNITION_PAGE_TYPE_RUN = 'run'
+PRODUCT_RECOGNITION_PAGE_TYPE_DETAIL = 'detail'
+
+
+# Product Labelling naviagation controls
+PRODUCT_LABELLING_PAGE_TYPE_KEY = 'pl_page_type'
+PRODUCT_LABELLING_PAGE_TYPE_LIST = 'list'
+PRODUCT_LABELLING_PAGE_TYPE_DETAIL = 'detail'
+PRODUCT_LABELLING_PAGE_TYPE_ARTICLE = 'article'
+PRODUCT_LABELLING_PAGE_CATEGORY_FILTER = 'category_filter'
+
+
+# Session Constants
+STATE_DISCARDED_IMAGES_KEY = 'items_removed'
+STATE_ADDED_BUNDLES_KEY ='added_bundles'
+STATE_ARTICLE_CHOSEN_KEY ='article_chosen'
+
+
+
+

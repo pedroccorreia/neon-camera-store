@@ -1,0 +1,7 @@
+streamlit
+streamlit-extras
+google-cloud-aiplatform
+google-cloud-storage 
+opencv-python 
+google-cloud-vision
+tqdm
