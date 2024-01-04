@@ -1,5 +1,5 @@
 
-from state_management import save_catalog, save_discarded_images
+from services.data.firestore_service import FirestoreService
 import utils
 import vector_search as vs
 import streamlit as st
@@ -12,6 +12,9 @@ from constants import INPUT_BUCKET, BUNDLE_FILENAME, CATALOG_FILEPATH
 import gcs_helper as storage 
 
 
+#init the data service
+data_service = FirestoreService()
+
 
 st.set_page_config(
     page_title="Product & Tag Recognizer",
@@ -21,7 +24,6 @@ st.set_page_config(
 
 
 # Data handling
-@st.cache_data
 def get_bundles(filtered_images : None):
 	bundles =  storage.load_jsonl_blob(INPUT_BUCKET, BUNDLE_FILENAME)
 	
@@ -39,8 +41,6 @@ def get_bundles(filtered_images : None):
 					if image['image_path'] not in filtered_images: 
 						if image['image_path'] != bundle['original_image']:
 							filtered_similar_images.append(image) #append the entire json object
-						else:
-							print(f'''Image {image['image_path']} is the same as the original''')
 							
 				bundle['similar_images'] = filtered_similar_images
 			
@@ -65,20 +65,9 @@ def load_article_data():
 
 # returns an array of bundles removing all images that have been discared
 def get_filtered_bundles(category_filter=None):
-	discarded_images = st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY]
-
-	#load images that have been selected to be added to the catalog
-	#init the bundle session state component
-	if ui_constants.STATE_ADDED_BUNDLES_KEY not in st.session_state:
-		st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY] = []
-
-	bundles = st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY]
-	catalog_images =[]
-	for  bundle in bundles:
-		catalog_images.append(utils.transform_gcs_uri(bundle['original_image_uri']))
-
+	discarded_images = data_service.get_discarded_uris()
+	catalog_images = data_service.get_catalog_uris()
 	print(f'discared Images {len(discarded_images)} | catalog_images {len(catalog_images)}')
-
 	filtered_images = discarded_images + catalog_images
 	
 	bundles = get_bundles(filtered_images)
@@ -111,39 +100,27 @@ def update_product_catalog(bundle):
 	print(f'''Updating catalog for article: {article_id}''')
 
 	if article_id != None:	
-		#convert the bundle into an array of json objects that have: 
+		# convert the bundle into an array of json objects that have: 
 		# +article id, +image url (to be imported to the model), original image url (current location), +image id (unique auto generated)
 		new_entries = utils.transform_bundle_to_catalog(  bundle, article_id)
 		#add it to the added bundles
-		st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY].extend( new_entries)
-		# materialize the result 
-		save_catalog(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])
-
+		data_service.add_catalog_entries(new_entries)
+		
 		# move to list
 		st.session_state[ui_constants.PRODUCT_LABELLING_PAGE_TYPE_KEY] = ui_constants.PRODUCT_LABELLING_PAGE_TYPE_LIST
 
 def handle_discard_bundle(bundle):
 	bundle = utils.transform_bundle_gcs_uri(bundle)
-
-	# init the discarded images
-	if ui_constants.STATE_DISCARDED_IMAGES_KEY not in st.session_state:
-		st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY]=[]
 	
 	#adding initial image
-	st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY].append(bundle['filename'])
+	data_service.add_discarded(image_uri=bundle['filename'])
 	for similar_image in bundle['similar_images']:
-		st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY].append(similar_image['image_path'])
-	# materialize the result 
-	save_discarded_images (st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY])
+		data_service.add_discarded(image_uri=similar_image['image_path'])
+	
 	# move to list
 	st.session_state[ui_constants.PRODUCT_LABELLING_PAGE_TYPE_KEY] = ui_constants.PRODUCT_LABELLING_PAGE_TYPE_LIST
 
 def handle_discard_image(uri):
-
-	# init the discarded images
-	if ui_constants.STATE_DISCARDED_IMAGES_KEY not in st.session_state:
-		st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY]=[]
-
 	remove_path = uri
 	bundle = st.session_state['image_comparison']
 	new_images=[]
@@ -153,11 +130,11 @@ def handle_discard_image(uri):
 			new_images.append(similar_image)
 		else:
 			#item is on the remove path
-			st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY].append(utils.transform_gcs_uri(similar_image['image_path']))
-	
-	# materialize the result 
-	save_discarded_images (st.session_state[ui_constants.STATE_DISCARDED_IMAGES_KEY])
+			new_uri = utils.transform_gcs_uri(similar_image['image_path'])
+			#update the data service with the new entry
+			data_service.add_discarded(image_uri=new_uri)
 
+	
 	bundle['similar_images'] = new_images
 	st.session_state['image_comparison'] = bundle
 
@@ -255,7 +232,12 @@ def build_article_page():
 		st.session_state[ui_constants.STATE_ARTICLE_CHOSEN_KEY] = None
 
 	bundle = st.session_state['image_comparison']
-
+	st.write("Images chosen:")
+	cols = st.columns(len(bundle['similar_images'])+1)
+	cols[0].image(bundle['filename'], width=500, caption='Seed')
+	for index, similar_image  in enumerate(bundle['similar_images']):
+		cols[index+1].image(similar_image['image_path'], width=300, caption='Similar')
+	
 	st.write("## Choose the article for this bundle")
 	with st.container():
 		cols = st.columns([1,6,1,1])

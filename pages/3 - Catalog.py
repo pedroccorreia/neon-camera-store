@@ -1,7 +1,7 @@
 import streamlit as st
 from constants import CATALOG_BUCKET, CATALOG_UPDATES_FILEPATH
 from gcs_helper import delete_file_from_gcs, upload_dataframe_to_gcs
-from state_management import save_catalog
+from services.data.firestore_service import FirestoreService
 import ui_constants
 import pandas as pd
 import utils
@@ -12,7 +12,7 @@ import utils
 
 catalog_df = None
 edited_df = None
-
+data_service = FirestoreService()
 
 st.set_page_config(
     page_title="Product Catalog",
@@ -27,23 +27,20 @@ def discard_all():
 
 def discard_selected():
     selected_uri = []
+
+    print(f'''Current entries {data_service.catalog_length()}''')
     for index, row in edited_df.iterrows():        
         
         if(row['select']==True):
             print(f'Current items {len(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])}')
             # print(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])
             gcs_uri = utils.transform_gcs_uri(row['image'])
-            filtered_array = [item for item in st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY] if item['original_image_uri'] != gcs_uri]
-
-            st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY] = filtered_array
+            res = data_service.remove_catalog(gcs_uri)
+            print(f'Removed {res}')
             print(f'Removed items now catalog has: {len(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])}')
-            
-            
-            
-    save_catalog(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])
-            
 
-    
+    print(f'''New entries {data_service.catalog_length()}''')
+                    
 
 def create_dataframe(data):
     temp_data = []
@@ -52,12 +49,11 @@ def create_dataframe(data):
     # Create the DataFrame
     return pd.DataFrame(temp_data)
 
-if ui_constants.STATE_ADDED_BUNDLES_KEY not in st.session_state or len(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY]) == 0:
+if not data_service.has_catalog():  
     st.write("No items chosen to update catalog")
 else: 
-
     #data
-    data = st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY]
+    data = data_service.get_catalog()
     
     # Create the DataFrame
     catalog_df = create_dataframe(data)
@@ -69,7 +65,7 @@ else:
     # Calculate unique values in the Article column
     uniqueRows = len(catalog_df['Article'].unique())
     # Calculate overall average of the number of rows per Article
-    averageRows = totalRows / uniqueRows
+    averageRows = round(totalRows / uniqueRows, 2)
 
     # Display the metrics in table
     st.write('# Catalog')
@@ -78,9 +74,8 @@ else:
     cols[1].metric("Unique Articles", uniqueRows)
     cols[2].metric("Average images per article", averageRows)
 
-    cols = st.columns([10,1,2])
-    cols[1].button('🗑️ All', on_click=discard_all)
-    cols[2].button('🗑️ Selected', on_click=discard_selected)
+    cols = st.columns([10,1])
+    cols[1].button('🗑️ Selected', on_click=discard_selected)
 
     edited_df = st.data_editor(catalog_df, height=1500, hide_index=True, use_container_width=True,  column_config={
         "Article" : st.column_config.TextColumn(),

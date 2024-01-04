@@ -48,4 +48,8 @@ IMAGE_EXCLUSION_FILEPATH = 'exclude/discarded_images.csv'
 
 PRODUCT_LABELLING_CATEGORIES = ['None', 'Bread', 'Cofee', 'Meat', 'Soft Drinks', 'Tea']
 
+#Data Constants
+COLLECTION_DISCARDED = 'discarded'
+COLLECTION_CATALOG = 'catalog'
+
 

@@ -1,7 +1,12 @@
 streamlit
 streamlit-extras
+streamlit-image-comparison
+scikit-image 
+imagecodecs
+av
 google-cloud-aiplatform
 google-cloud-storage 
 opencv-python 
 google-cloud-vision
 tqdm
+google-cloud-firestore

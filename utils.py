@@ -1,5 +1,7 @@
+from collections import Counter
 import uuid 
 from constants import CATALOG_BUCKET, IMAGE_EXTENSION, PRODUCT_LABELLING_CATEGORIES
+import pandas as pd
   
 
 def transform_html_path(uri):
@@ -31,7 +33,7 @@ def generate_image_id():
 
 def transform_bundle_entry_to_catalog( image_path, article_id):
     new_image_uri = CATALOG_BUCKET+'/'+ get_image_id(image_path)+ IMAGE_EXTENSION
-    return {'article_id': article_id, 'image_uri' : new_image_uri, 'original_image_uri' : image_path, 'image_id':generate_image_id()}
+    return {'article_id': article_id, 'image_uri' : new_image_uri, 'original_image_uri' : image_path}
 
 
 def transform_bundle_to_catalog( bundle, article_id):
@@ -54,3 +56,32 @@ def category_filter_selected_index(category):
         print(f'looking for {category} in entry {entry} index {index}')
         if(entry == category):
             return index
+        
+
+
+# unique products and their product facings
+# add no products identfied and their product facings
+def run_recognition_metrics(run_results):
+    articles = []
+    for result in run_results:
+        if (len(result['productRecognitionAnnotations'][0]['recognitionResults']) == 0):
+            articles.append('No Product Matched')
+        else:
+            #assumes the first entry with the highest confidence is the one shown
+            prod_data = result['productRecognitionAnnotations'][0]['recognitionResults'][0]['productMetadata']
+            articles.append(prod_data['title'])
+            
+    # count different products
+    # Count the occurrences of each article
+    article_counts = Counter(articles)
+
+    # Create a list of unique articles and their counts
+    unique_articles = [(article, count) for article, count in article_counts.items()]
+
+    # create the pandas dataframe
+    result = pd.DataFrame(data=unique_articles, columns=['Products', 'Facings']).sort_values(by='Facings', ascending=False)
+
+    result['Percentage of total'] = round((result['Facings'] / result['Facings'].sum()) * 100)
+    return result
+
+    
