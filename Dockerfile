@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# get source code
+# TODO: make it work with arguments for a private github repo
+# get source code 
 RUN git clone https://github.com/pedroccorreia/neon-camera-store.git .
 
 # Upgrade pip and install requirements

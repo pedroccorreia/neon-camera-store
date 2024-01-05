@@ -87,6 +87,6 @@ export CLOUDRUN_SERVICE=product-labelling-open
 gcloud run deploy $CLOUDRUN_SERVICE \
 --image=product-labelling-prod-us//$PROJECT_ID/$CONTAINER_NAME@latest \
 --region=$REGION \
---project=$PROJECT_ID \
+--project=$PROJECT_IDENTIFIER \
  && gcloud run services update-traffic $CLOUDRUN_SERVICE --to-latest --region=$REGION
 ```
