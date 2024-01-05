@@ -234,9 +234,9 @@ def build_article_page():
 	bundle = st.session_state['image_comparison']
 	st.write("Images chosen:")
 	cols = st.columns(len(bundle['similar_images'])+1)
-	cols[0].image(bundle['filename'], width=500, caption='Seed')
+	cols[0].image(bundle['filename'], width=300, caption='Seed')
 	for index, similar_image  in enumerate(bundle['similar_images']):
-		cols[index+1].image(similar_image['image_path'], width=300, caption='Similar')
+		cols[index+1].image(similar_image['image_path'], width=50, caption='Similar')
 	
 	st.write("## Choose the article for this bundle")
 	with st.container():
