@@ -29,3 +29,25 @@ JSONL object with:
 - similar_images: array of matches
     - image_path: gcs_uri
     - similarity_score: confidence level of the similarity between the images
+
+
+# Deploying to Cloud Run
+## Build the container
+```
+docker build -t eu.gcr.io/neon-camera-403606/product_labelling:v1 .
+```
+Once that is done push it to the Artifact Registry: 
+
+```
+docker push eu.gcr.io/neon-camera-403606/product_labelling:v1
+```
+
+# Push new version of the container
+```
+gcloud run deploy product-labelling-open \
+--image=eu.gcr.io/neon-camera-403606/product_labelling@sha256:bd10a0cf30dd93c24510ed07b4ad79ef0b7207323b738d017eea7ce971aaacb6 \
+--region=us-central1 \
+--project=neon-camera-403606 \
+ && gcloud run services update-traffic product-labelling-open --to-latest --region=us-central1
+
+```

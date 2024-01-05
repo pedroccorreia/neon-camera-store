@@ -17,6 +17,7 @@ RUN pip3 install -r app/requirements.txt
 COPY images app/images
 COPY pages app/pages
 COPY data app/data
+COPY services app/services
 COPY Home.py app/Home.py
 COPY constants.py app/constants.py
 COPY embedding_prediction_client.py app/embedding_prediction_client.py

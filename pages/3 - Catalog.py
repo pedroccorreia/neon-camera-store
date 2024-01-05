@@ -77,6 +77,8 @@ else:
     cols = st.columns([10,1])
     cols[1].button('🗑️ Selected', on_click=discard_selected)
 
+    catalog_df = catalog_df.sort_values("Article")
+
     edited_df = st.data_editor(catalog_df, height=1500, hide_index=True, use_container_width=True,  column_config={
         "Article" : st.column_config.TextColumn(),
         "image": st.column_config.ImageColumn(

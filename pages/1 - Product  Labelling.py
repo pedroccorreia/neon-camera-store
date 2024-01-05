@@ -247,6 +247,7 @@ def build_article_page():
 		cols[3].button('✅ Add Bundle', on_click=update_product_catalog, args=[bundle])
 		
 	df = load_article_data()
+	df = df.sort_values("Name")
 	
 	edited_df = st.data_editor(df, column_config={
         "choose": st.column_config.CheckboxColumn(
