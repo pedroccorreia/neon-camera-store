@@ -68,8 +68,6 @@ export REGION='us-central1'
 ```
 
 ## Build the container
-
-This assumes that you have the Dockerfile in the current folder
 ```shell
 docker build -t $IMAGE_URI .
 ```
