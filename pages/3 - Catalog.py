@@ -32,13 +32,9 @@ def discard_selected():
     for index, row in edited_df.iterrows():        
         
         if(row['select']==True):
-            print(f'Current items {len(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])}')
-            # print(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])
             gcs_uri = utils.transform_gcs_uri(row['image'])
             res = data_service.remove_catalog(gcs_uri)
-            print(f'Removed {res}')
-            print(f'Removed items now catalog has: {len(st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY])}')
-
+            
     print(f'''New entries {data_service.catalog_length()}''')
                     
 

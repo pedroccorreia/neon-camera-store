@@ -1,3 +1,4 @@
+```python
 # Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,18 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+``` 
 
+# Pre-requisite
 
-# install requirements
-pip install -r requirements.txt 
-
-# export path to service account key 
-export  GOOGLE_APPLICATION_CREDENTIALS
-
-# run the application
-streamlit run home.py 
-
-# Example of jsonl files
+## Data format
 
 JSONL object with:
 - original_image: gcs_uri for the originator of the bundles
@@ -30,24 +24,71 @@ JSONL object with:
     - image_path: gcs_uri
     - similarity_score: confidence level of the similarity between the images
 
+# Testing the application locally
+
+## install requirements
+
+```shell
+pip install -r requirements.txt 
+```
+
+## export path to service account key 
+
+```shell
+export  GOOGLE_APPLICATION_CREDENTIALS
+```
+
+## run the application
+```shell
+streamlit run home.py 
+```
+
 
 # Deploying to Cloud Run
-## Build the container
+
+To build a container and deploy it to cloud run we will need to: 
+
+1. Have your source code in the running directory
+2. Build the container
+3. Push the container to Artifact Registry
+4. Deploy the container to Cloud Run
+
+The next steps will show you how to do 2-4.
+
+## Environment variables
 ```
-docker build -t eu.gcr.io/neon-camera-403606/product_labelling:v1 .
+
+export PROJECT_IDENTIFIER='neon-camera-403606'
+export CONTAINER_VERSION='v2.1'
+export CONTAINER_NAME='product_labelling'
+export IMAGE_URI=us.gcr.io/$PROJECT_IDENTIFIER/$CONTAINER_NAME:$CONTAINER_VERSION
+
+export REGION='us-central1'
+
+```
+
+## Build the container
+
+This assumes that you have the Dockerfile in the current folder
+```shell
+docker build -t $IMAGE_URI .
 ```
 Once that is done push it to the Artifact Registry: 
 
-```
-docker push eu.gcr.io/neon-camera-403606/product_labelling:v1
+```shell
+docker push $IMAGE_URI
 ```
 
 # Push new version of the container
-```
-gcloud run deploy product-labelling-open \
---image=eu.gcr.io/neon-camera-403606/product_labelling@sha256:bd10a0cf30dd93c24510ed07b4ad79ef0b7207323b738d017eea7ce971aaacb6 \
---region=us-central1 \
---project=neon-camera-403606 \
- && gcloud run services update-traffic product-labelling-open --to-latest --region=us-central1
 
+```shell
+export CLOUDRUN_SERVICE=product-labelling-open
+```
+
+```shell
+gcloud run deploy $CLOUDRUN_SERVICE \
+--image=product-labelling-prod-us//$PROJECT_ID/$CONTAINER_NAME@latest \
+--region=$REGION \
+--project=$PROJECT_ID \
+ && gcloud run services update-traffic $CLOUDRUN_SERVICE --to-latest --region=$REGION
 ```
