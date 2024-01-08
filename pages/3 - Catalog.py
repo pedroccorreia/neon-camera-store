@@ -1,5 +1,5 @@
 import streamlit as st
-from constants import CATALOG_BUCKET, CATALOG_UPDATES_FILEPATH
+from constants import CATALOG_BUCKET
 from gcs_helper import delete_file_from_gcs, upload_dataframe_to_gcs
 from services.data.firestore_service import FirestoreService
 import ui_constants
@@ -20,10 +20,6 @@ st.set_page_config(
     layout="wide",    
 )
 
-
-def discard_all():
-    del st.session_state[ui_constants.STATE_ADDED_BUNDLES_KEY]
-    delete_file_from_gcs(CATALOG_BUCKET, CATALOG_UPDATES_FILEPATH)
 
 def discard_selected():
     selected_uri = []

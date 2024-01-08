@@ -1,6 +1,8 @@
 streamlit
 streamlit-extras
 streamlit-image-comparison
+pyyaml
+gcsfs
 scikit-image 
 imagecodecs
 av

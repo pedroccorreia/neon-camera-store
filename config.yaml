@@ -1,0 +1,10 @@
+project:
+  project_id: neon-camera-403606
+  project_number: 1044073708529
+  region: us-central1
+
+recognition:
+  bundle_filename: similarity_results.jsonl
+  catalog_id : neon-camera-catalog-gregory-hill-demo
+  endpoint_id: '002'
+  categories: ['None', 'Bread', 'Cofee', 'Meat', 'Soft Drinks', 'Tea']
