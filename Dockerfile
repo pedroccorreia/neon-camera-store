@@ -1,6 +1,5 @@
 FROM python:3.9-slim
 
-WORKDIR app/
 
 # install basics
 RUN apt-get update && apt-get install -y \
@@ -9,6 +8,13 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     git \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir app/
+
+# Move your yaml file to the deployment folder
+COPY config.yaml app/config.yaml
+
+WORKDIR app/
 
 # TODO: make it work with arguments for a private github repo
 # get source code 

@@ -48,7 +48,7 @@ streamlit run home.py
 
 To build a container and deploy it to cloud run we will need to: 
 
-1. Have your source code in the running directory
+1. Create your environment dependent constants
 2. Build the container
 3. Push the container to Artifact Registry
 4. Deploy the container to Cloud Run
@@ -56,7 +56,7 @@ To build a container and deploy it to cloud run we will need to:
 The next steps will show you how to do 2-4.
 
 ## Environment variables
-```
+```shell
 
 export PROJECT_IDENTIFIER='neon-camera-403606'
 export CONTAINER_VERSION='v2.1'
@@ -66,6 +66,9 @@ export IMAGE_URI=us.gcr.io/$PROJECT_IDENTIFIER/$CONTAINER_NAME:$CONTAINER_VERSIO
 export REGION='us-central1'
 
 ```
+## Edit your environment dependent constants
+
+Create a config.yaml file at the root of the project that contains the following environment dependent info. Create one based on the example given: sample_config.
 
 ## Build the container
 ```shell
