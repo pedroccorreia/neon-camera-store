@@ -64,8 +64,6 @@ def generate_batches(
 
 
 
-
-
 def encode_to_embeddings_chunked(
     process_function: Callable[[List[str]], List[Optional[List[float]]]],
     items: List[str],

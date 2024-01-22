@@ -29,33 +29,47 @@ JSONL object with:
 ## install requirements
 
 ```shell
+
 pip install -r requirements.txt 
+
 ```
 
 ## export path to service account key 
 
 ```shell
-export  GOOGLE_APPLICATION_CREDENTIALS
+
+export  GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
+
+
 ```
 
-## run the application
+## Run the application
+
 ```shell
+
 streamlit run home.py 
+
 ```
 
+A new browser is opened in the home page.
 
 # Deploying to Cloud Run
 
 To build a container and deploy it to cloud run we will need to: 
 
-1. Create your environment dependent constants
-2. Build the container
-3. Push the container to Artifact Registry
-4. Deploy the container to Cloud Run
+1. Create your environment dependent config file.
+2. Build the container.
+3. Push the container to Artifact Registry.
+4. Deploy the container to Cloud Run.
 
-The next steps will show you how to do 2-4.
+
+## Edit your environment dependent constants
+
+Create a config.yaml file at the root of the project that contains the following environment dependent info. Create one based on the example given: sample_config.
+
 
 ## Environment variables
+
 ```shell
 
 export PROJECT_IDENTIFIER='neon-camera-403606'
@@ -66,18 +80,19 @@ export IMAGE_URI=us.gcr.io/$PROJECT_IDENTIFIER/$CONTAINER_NAME:$CONTAINER_VERSIO
 export REGION='us-central1'
 
 ```
-## Edit your environment dependent constants
-
-Create a config.yaml file at the root of the project that contains the following environment dependent info. Create one based on the example given: sample_config.
 
 ## Build the container
 ```shell
+
 docker build -t $IMAGE_URI .
+
 ```
 Once that is done push it to the Artifact Registry: 
 
 ```shell
+
 docker push $IMAGE_URI
+
 ```
 
 # Push new version of the container
@@ -87,9 +102,11 @@ export CLOUDRUN_SERVICE=product-labelling-open
 ```
 
 ```shell
+
 gcloud run deploy $CLOUDRUN_SERVICE \
 --image=product-labelling-prod-us//$PROJECT_ID/$CONTAINER_NAME@latest \
 --region=$REGION \
 --project=$PROJECT_IDENTIFIER \
  && gcloud run services update-traffic $CLOUDRUN_SERVICE --to-latest --region=$REGION
+ 
 ```

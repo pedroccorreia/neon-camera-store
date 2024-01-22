@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Continue with other script actions if the file exists or the user chose to continue
 RUN mkdir app/
 
 # Move your yaml file to the deployment folder
@@ -18,6 +19,7 @@ WORKDIR app/
 
 # TODO: make it work with arguments for a private github repo
 # get source code 
+# RUN git clone https://<username>:<personal_access_token>@github.com/pedroccorreia/neon-camera-store.git .
 RUN git clone https://github.com/pedroccorreia/neon-camera-store.git .
 
 # Upgrade pip and install requirements
