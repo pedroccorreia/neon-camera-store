@@ -1,6 +1,11 @@
+import math
+import constants
+import utils
 import streamlit as st
-from gcs_helper import load_json_blob 
+from services.data.firestore_service import FirestoreService
+from services.gcs_service import load_json_blob 
 from constants import RUNS_BUCKET, CONSOLIDATED_FOLDER, IMAGE_EXTENSION
+from services.match.matching_service import MatchingService
 from utils import run_recognition_metrics, transform_html_path, get_image_id
 import ui_constants
 import pandas as pd
@@ -11,6 +16,9 @@ st.set_page_config(
     page_icon="📸",
     layout="wide",    
 )
+
+#init the data service
+data_service = FirestoreService()
 
 @st.cache_data
 def get_run_results(run_id):
@@ -51,7 +59,8 @@ def get_header_images(run_id, image_uri):
 def get_run_list():
     # Create a Pandas DataFrame with static data
     data = [
-        {"run_id": 'bread_20231128-051003', "catalog_info": "", "observation": "none"},
+        {"run_id": 'tea__20231128-081724', "catalog_info": "", "observation": "18 products added"},
+     #    {"run_id": 'bread_20231128-051003', "catalog_info": "", "observation": "none"},
         {"run_id": 'bread__20231129-000523', "catalog_info": "", "observation": "18 products added"},
     ]
     return data
@@ -75,6 +84,52 @@ def navigate_to_run_detail(run_id, image_uri):
 def navigate_to_rec_detail(rec_result):
     st.session_state[ui_constants.STATE_RECOGNITION_RESULTS_KEY] = rec_result
     st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] = ui_constants.PRODUCT_LABELLING_PAGE_TYPE_REC_RESULTS
+
+
+def navigate_to_product_labelling( image_uri):
+    st.session_state[ui_constants.STATE_CHOSEN_IMAGE_TO_LABEL] = image_uri
+    st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] = ui_constants.PRODUCT_RECOGNITION_LABEL_SEARCH
+
+def navigate_exit_labelling():
+	# remove previously existing image chosen
+	if ui_constants.STATE_CHOSEN_IMAGE_TO_LABEL in st.session_state:
+		del st.session_state[ui_constants.STATE_CHOSEN_IMAGE_TO_LABEL]
+	if ui_constants.STATE_CHOSEN_SIMILAR_IMAGES in st.session_state:
+		del st.session_state[ui_constants.STATE_CHOSEN_SIMILAR_IMAGES]
+          
+	navigate_to_run_detail(st.session_state['run_id'], st.session_state['image_uri'])
+
+def navigate_to_article():
+    st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] = ui_constants.PRODUCT_RECOGNITION_LABEL_ARTICLE
+
+#Event handlers
+def handle_toggle_image(image_uri):
+    chosen_images=[]
+    if ui_constants.STATE_CHOSEN_SIMILAR_IMAGES in st.session_state:
+        chosen_images = st.session_state[ui_constants.STATE_CHOSEN_SIMILAR_IMAGES]
+    
+    if image_uri in chosen_images:
+        chosen_images.remove(image_uri)
+    else:   
+        chosen_images.append(image_uri)
+
+    st.session_state[ui_constants.STATE_CHOSEN_SIMILAR_IMAGES] = chosen_images
+    
+def handle_add_product_catalog(): 
+    article_id = st.session_state[ui_constants.STATE_ARTICLE_CHOSEN_KEY]
+    print(f'''Updating catalog for article: {article_id}''')
+
+    if article_id != None:	
+        chosen_images = st.session_state[ui_constants.STATE_CHOSEN_SIMILAR_IMAGES]
+        new_entries = []
+        for image in chosen_images:
+            gcs_uri = utils.transform_gcs_uri(image)
+            print(f'adding {image} to article {article_id}')
+            new_entries.append({'article_id': article_id, 'image_uri' : gcs_uri, 'original_image_uri' : gcs_uri})
+        #add it to the catalog
+        data_service.add_catalog_entries(new_entries, source=constants.LABELLING_SOURCE_RUNS)
+        navigate_exit_labelling()
+    
 
 #Build different pages
 def build_detail_page():
@@ -120,6 +175,7 @@ def build_detail_page():
             col1.image(transform_html_path(entry['imageUri'])) # Consolidated view
             if(len(entry['productRecognitionAnnotations'][0]['recognitionResults']) == 0):
                 col2.text('🔴')
+                col5.button('Label', key= entry['imageUri'], on_click=navigate_to_product_labelling, args=[entry['imageUri']])
             else:
                 rec_result = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]
                 prod_data = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]['productMetadata']
@@ -173,14 +229,113 @@ def build_rec_results_page():
     st.write("# Recognition Results")
     #show json content
     st.json(recognition_entry)
+    
+def get_number_similar_images():
+    return 0 if ui_constants.STATE_CHOSEN_SIMILAR_IMAGES not in st.session_state else len(st.session_state[ ui_constants.STATE_CHOSEN_SIMILAR_IMAGES])
+
+#TODO: make this reusable
+@st.cache_data
+def load_article_data():
+	# Read the CSV file into a Pandas DataFrame
+	data = pd.read_csv(constants.CATALOG_FILEPATH)
+	data['URL']  = "https://www.woolworths.com.au/shop/productdetails/" + data['Article ID'].astype(str)
+	# add column for editing
+	data['choose'] = False
+	return data
+     
+#page that will enable the user to search similar images for a chosen image
+def build_label_search_page():
+    st.write("##Choose Images")
+    image_id = st.session_state[ui_constants.STATE_CHOSEN_IMAGE_TO_LABEL]
+    
+    
+    with st.container():
+       cols = st.columns([1,1,2,6])
+       cols[0].button('← Go Back', on_click=navigate_exit_labelling)
+       cols[1].button('📋 Choose Article', on_click=navigate_to_article)
+       cols[3].metric(label='Similar Images', value=get_number_similar_images())
+       
+    
+    st.divider()
+    st.write("#### Images")    
+    #create Matching Service
+    matching_service = MatchingService()
+    similarity_results = matching_service.get_matches(image_id)
+    # st.table(similarity_results)
+
+    with st.container():
+        total_rows = math.ceil(len(similarity_results)/4)
+        current_index = 0
+        for row_index in range(total_rows):
+            row_container = st.container()
+            # Create 4 columns in this row
+            cols = row_container.columns(4)
+            for col_index in range(4):
+                if current_index < len(similarity_results):
+                    similar_image = similarity_results[current_index]
+                    with cols[col_index]:
+                        caption = f'Similarity: { round(1-similar_image[1],3)}' if current_index != 0 else '⭐️ Original'
+                            
+                        st.image(similar_image[0], width=250, caption=caption)
+                        st.toggle(label="Include", 
+                            key=similar_image[0], 
+                            value = False,
+                            on_change= handle_toggle_image, args=[similar_image[0]]
+                        )
+                    current_index = current_index + 1
+            
+            
+def build_label_article_page():
+	st.write("## Choose Article")
+    
+	#init article chose
+	if ui_constants.STATE_ARTICLE_CHOSEN_KEY not in st.session_state:
+		print('setting chosen article to none')
+		st.session_state[ui_constants.STATE_ARTICLE_CHOSEN_KEY] = None
 
 
+	# bundle = st.session_state['image_comparison']
+	st.write("Images chosen:")
+	similar_images = st.session_state[ui_constants.STATE_CHOSEN_SIMILAR_IMAGES]
+	cols = st.columns(len(similar_images))
+	
+	for index, similar_image  in enumerate(similar_images):
+		cols[index].image(similar_image, width=100)
 
-
+	st.write("## Choose the article for this bundle")
+	with st.container():
+		cols = st.columns([1,6,1,1])
+		cols[0].button('← Go Back', on_click=navigate_exit_labelling)
+		cols[1].text('Options')
+		cols[3].button('✅ Add Article', on_click=handle_add_product_catalog)
+		
+	df = load_article_data()
+	df = df.sort_values("Name")
+	
+	edited_df = st.data_editor(df, column_config={
+        "choose": st.column_config.CheckboxColumn(
+            "Choose article",
+            help="Select the **correct** article for this bundle",
+            default=False,
+        ), 
+		"Article ID" :st.column_config.TextColumn(),
+		"URL":st.column_config.LinkColumn()
+    },
+	disabled=["Article ID", "Name","Category", "Sub-Category"],
+    hide_index=True,
+	use_container_width=True) # 👈 An editable dataframe
+	
+	chosen_article = edited_df.loc[edited_df["choose"].isin([True])]
+	
+	if chosen_article.shape[0] > 0: #picks the first choice
+		article = chosen_article.head(1)["Article ID"].values[0]
+		st.session_state[ui_constants.STATE_ARTICLE_CHOSEN_KEY] = article
+		print(f'setting chosen article {article}')           
+        
+        
 # Overall page creation
 if  ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY not in st.session_state:
     st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] = ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_LIST
-
 
 if st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] == ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_LIST:
     st.empty()
@@ -194,3 +349,9 @@ elif st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] == ui_cons
 elif st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] == ui_constants.PRODUCT_LABELLING_PAGE_TYPE_REC_RESULTS:
     st.empty()
     build_rec_results_page()
+elif st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] == ui_constants.PRODUCT_RECOGNITION_LABEL_SEARCH:
+    st.empty()
+    build_label_search_page()
+elif st.session_state[ui_constants.PRODUCT_RECOGNITION_PAGE_TYPE_KEY] == ui_constants.PRODUCT_RECOGNITION_LABEL_ARTICLE:
+    st.empty()
+    build_label_article_page()

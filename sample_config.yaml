@@ -8,3 +8,11 @@ recognition:
   catalog_id : a-catalog-id-sample
   endpoint_id: '002'
   categories: ['None', 'Bread', 'Cofee', 'Meat', 'Soft Drinks', 'Tea']
+
+catalog:
+  update_bucket: neon-camera-403606-catalog-images
+
+matching_engine:
+  api_endpoint: sample.vdb.vertexai.goog
+  index_enpoint: projects/project_id/locations/us-central1/indexEndpoints/id
+  deployed_index_id : deployed_index_id

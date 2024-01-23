@@ -73,10 +73,9 @@ Create a config.yaml file at the root of the project that contains the following
 ```shell
 
 export PROJECT_IDENTIFIER='neon-camera-403606'
-export CONTAINER_VERSION='v2.1'
+export CONTAINER_VERSION='v3.3'
 export CONTAINER_NAME='product_labelling'
 export IMAGE_URI=us.gcr.io/$PROJECT_IDENTIFIER/$CONTAINER_NAME:$CONTAINER_VERSION
-
 export REGION='us-central1'
 
 ```
@@ -104,7 +103,7 @@ export CLOUDRUN_SERVICE=product-labelling-open
 ```shell
 
 gcloud run deploy $CLOUDRUN_SERVICE \
---image=product-labelling-prod-us//$PROJECT_ID/$CONTAINER_NAME@latest \
+--image=us.gcr.io/$PROJECT_IDENTIFIER/$CONTAINER_NAME:$CONTAINER_VERSION \
 --region=$REGION \
 --project=$PROJECT_IDENTIFIER \
  && gcloud run services update-traffic $CLOUDRUN_SERVICE --to-latest --region=$REGION

@@ -38,7 +38,7 @@ class DataService():
 
 
     @abstractmethod
-    def add_catalog(self, catalog_entry):
+    def add_catalog(self, catalog_entry, source):
         """Adds a catalog image to the data source."""
         pass
 

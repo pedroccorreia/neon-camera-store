@@ -84,7 +84,7 @@ class FirestoreService(DataService):
         return catalog
     
     def get_catalog_uris(self):
-        #return all entries in the discarded collection and return it
+        #return all entries in the catalog collection and return it
         entries = self.db.collection(constants.COLLECTION_CATALOG).stream()
         catalog = []
         for entry in entries:
@@ -92,24 +92,25 @@ class FirestoreService(DataService):
         #return the discarded
         return catalog
     
-    def add_catalog(self, catalog_entry):
+    def add_catalog(self, catalog_entry, source):
         # get the image id based on image_uri
         image_id = self.get_image_id(image_uri=catalog_entry['original_image_uri'])
         # add the entry to the catalog collection
         entry_ref = self.db.collection(constants.COLLECTION_CATALOG).document(image_id)
         # convert numpy to int
         catalog_entry['article_id'] = catalog_entry['article_id'].item()
+        catalog_entry['source'] = source
         entry_ref.set(catalog_entry)
 
         return entry_ref
     
-    def add_catalog_entries(self, catalog_entries):
+    def add_catalog_entries(self, catalog_entries, source = constants.LABELLING_SOURCE_BUNDLES):
         '''
         Adds a list of catalog entries to the catalog collection
         '''
         added_keys =[]
         for entry in catalog_entries:
-            added_keys.append(self.add_catalog(entry))
+            added_keys.append(self.add_catalog(entry, source))
         return added_keys
         
     

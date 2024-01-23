@@ -1,6 +1,6 @@
 import streamlit as st
 from constants import CATALOG_BUCKET
-from gcs_helper import delete_file_from_gcs, upload_dataframe_to_gcs
+from services.gcs_service import delete_file_from_gcs, upload_dataframe_to_gcs
 from services.data.firestore_service import FirestoreService
 import ui_constants
 import pandas as pd

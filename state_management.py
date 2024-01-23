@@ -5,7 +5,7 @@ import pandas as pd
 from constants import CATALOG_BUCKET, CATALOG_UPDATES_FILEPATH, IMAGE_EXCLUSION_FILEPATH
 
 
-from gcs_helper import  load_text_blob, upload_dataframe_to_gcs
+from services.gcs_service import  load_text_blob, upload_dataframe_to_gcs
 
 def create_bundles_dataframe(data):
     temp_data = []

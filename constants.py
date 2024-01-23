@@ -45,8 +45,19 @@ CATALOG_FILEPATH =f'{CATALOG_BUCKET}/product_catalog.csv'
 PRODUCT_LABELLING_CATEGORIES = config_info['recognition']['categories']
 
 
+CATALOG_UPDATE_BUCKET = config_info['catalog']['update_bucket']
+
 #Firestore Constants
 COLLECTION_DISCARDED = 'discarded'
 COLLECTION_CATALOG = 'catalog'
+
+#Matching engine
+MATCHING_ENGINE_API_ENDPOINT = config_info['matching_engine']['api_endpoint']
+MATCHING_ENGINE_INDEX_ENDPOINT = config_info['matching_engine']['index_endpoint']
+MATCHING_ENGINE_DEPLOYED_INDEX_ID = config_info['matching_engine']['deployed_index_id']
+
+LABELLING_SOURCE_BUNDLES = 'auto_bundle'
+LABELLING_SOURCE_RUNS = 'runs'
+
 
 

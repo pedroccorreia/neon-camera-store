@@ -220,3 +220,5 @@ def copy_blob(
     blob_copy = source_bucket.copy_blob(
         source_blob, destination_bucket, destination_blob_name,
     )
+
+    return blob_copy
