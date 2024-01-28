@@ -73,7 +73,7 @@ Create a config.yaml file at the root of the project that contains the following
 ```shell
 
 export PROJECT_IDENTIFIER='neon-camera-403606'
-export CONTAINER_VERSION='v3.3'
+export CONTAINER_VERSION='v3.4'
 export CONTAINER_NAME='product_labelling'
 export IMAGE_URI=us.gcr.io/$PROJECT_IDENTIFIER/$CONTAINER_NAME:$CONTAINER_VERSION
 export REGION='us-central1'

@@ -67,10 +67,15 @@ class FirestoreService(DataService):
         
     def get_image_id(self, image_uri):
         """Extracts the image ID from a given string, removing the extension."""
-        print(f"""Extracting image ID from image_uri: {image_uri}""")
         base_filename = os.path.basename(image_uri)  # Get the base filename
         filename, extension = os.path.splitext(base_filename)  # Extract filename
-        print(f"""Returning filename: {filename} from image_uri: {image_uri}""")
+        return filename
+    
+    def get_image_id_from_run(self, image_uri):
+        """Extracts the image ID from a given string, removing the extension."""
+        tokens = image_uri.split('/')
+        filename = tokens[-2]+'-'+tokens[-1]
+        filename = filename.split('.')[0]
         return filename
     
     # {'article_id': article_id, 'image_uri' : new_image_uri, 'original_image_uri' : image_path}
@@ -125,9 +130,9 @@ class FirestoreService(DataService):
         entry_ref.delete()
         return entry_key
     
-    def contains_catalog(self, catalog_entry):
+    def contains_catalog(self, image_uri):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=catalog_entry['original_image_uri'])
+        image_id = self.get_image_id(image_uri=image_uri)
         # check if the catalog collection has a matching entry
         entry_ref = self.db.collection(constants.COLLECTION_CATALOG).document(image_id).get()
         return entry_ref.exists

@@ -59,9 +59,13 @@ def get_header_images(run_id, image_uri):
 def get_run_list():
     # Create a Pandas DataFrame with static data
     data = [
-        {"run_id": 'tea__20231128-081724', "catalog_info": "", "observation": "18 products added"},
+        
      #    {"run_id": 'bread_20231128-051003', "catalog_info": "", "observation": "none"},
         {"run_id": 'bread__20231129-000523', "catalog_info": "", "observation": "18 products added"},
+        {"run_id": "coffee_20231127-235445", "catalog_info": "", "observation": "-"},
+        {"run_id": 'tea__20231128-081724', "catalog_info": "", "observation": "-"},
+        {"run_id": 'meat__20231128-100512', "catalog_info": "", "observation": "-"},
+        {"run_id": 'softdrinks__20231128-071602', "catalog_info": "", "observation": "-"},
     ]
     return data
 
@@ -168,21 +172,23 @@ def build_detail_page():
         col2.subheader('Result')
         col3.subheader('Product')
         col4.subheader('Confidence')
-        col5.subheader('    ')
+        col5.subheader('Actions')
         for entry in run_results:
-            col1,col2, col3, col4, col5 = st.columns([4,1,2,2,1])
+            col1,col2, col3, col4, col5, col6= st.columns([4,1,2,2,1,1])
             
             col1.image(transform_html_path(entry['imageUri'])) # Consolidated view
             if(len(entry['productRecognitionAnnotations'][0]['recognitionResults']) == 0):
                 col2.text('🔴')
-                col5.button('Label', key= entry['imageUri'], on_click=navigate_to_product_labelling, args=[entry['imageUri']])
+                col6.button('Label', key= entry['imageUri'] + '-label',type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
             else:
                 rec_result = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]
                 prod_data = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]['productMetadata']
                 col2.text(f'''🟢''')
                 col3.text(prod_data['title'])
                 col4.text(round(rec_result['confidence'],ndigits=2))
-                col5.button('Detail', key=entry['imageUri'], on_click=navigate_to_rec_detail, args=[entry])
+                col5.button('Detail', key=entry['imageUri'] + '-detail', on_click=navigate_to_rec_detail, args=[entry])
+                col6.button('Label', key= entry['imageUri'] + '-label', type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
+                
     
 
 def build_list_page():
@@ -190,16 +196,21 @@ def build_list_page():
     runs = get_run_list()
     # Create columns for table and buttons
     col1, col2, col3, col4 = st.columns(4)
+    col1.subheader('Run ID')
+    col2.subheader('Catalog Info')
+    col3.subheader('Observation')
+    col4.subheader('Actions')
+    
     for run in runs:
-        with col1:
-            st.text(run['run_id'])
-        with col2:
-            st.text(run['catalog_info'])
-        with col3:
-            st.text(run['observation'])
-        with col4:
-            st.button('Detail', key=run['run_id'], on_click=navigate_to_run,args=[run['run_id']])
+        col1.text(run['run_id'])
+        col2.text(run['catalog_info'])
+        col3.text(run['observation'])
+        col4.button('Detail', key=run['run_id'], on_click=navigate_to_run,args=[run['run_id']])
+        
+        
 
+        
+            
     
 def build_run_page():
     run_id = st.session_state['run_id']
@@ -245,15 +256,28 @@ def load_article_data():
      
 #page that will enable the user to search similar images for a chosen image
 def build_label_search_page():
-    st.write("##Choose Images")
+    st.write("## Choose Images")
     image_id = st.session_state[ui_constants.STATE_CHOSEN_IMAGE_TO_LABEL]
+
     
+    
+
+    
+    contains_image = data_service.contains_catalog(data_service.get_image_id_from_run(image_id))
+    
+
     
     with st.container():
-       cols = st.columns([1,1,2,6])
+       cols = st.columns([1,2,2,4,6])
        cols[0].button('← Go Back', on_click=navigate_exit_labelling)
        cols[1].button('📋 Choose Article', on_click=navigate_to_article)
-       cols[3].metric(label='Similar Images', value=get_number_similar_images())
+       
+       cols[4].metric(label='Similar Images', value=get_number_similar_images())
+       
+       if contains_image:
+        cols[3].metric(label='Used before', value='⛔️')
+       else:
+           cols[3].metric(label='Not used before', value='✅')
        
     
     st.divider()
