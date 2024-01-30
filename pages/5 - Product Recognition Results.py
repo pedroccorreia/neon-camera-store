@@ -160,7 +160,7 @@ def build_detail_page():
     
 
     # Image Headers
-    rst.write('Images')
+    st.write('Images')
     cols = st.columns(3)
     cols[0].image(image_uri_info['original_image_uri'], caption='Original Image')
     cols[1].image(image_uri_info['detection_image_uri'], caption='Products Detected')
