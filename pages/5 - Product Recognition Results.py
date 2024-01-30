@@ -1,4 +1,5 @@
 import math
+import datetime
 import constants
 import utils
 import streamlit as st
@@ -35,6 +36,14 @@ def get_run_results_per_image(run_id, filtering_image_id):
             results.append(entry)
     return results
 
+def get_run_results_per_image_set(run_id, image_set):
+  result =[]
+  for image in image_set:
+    image_id = get_image_id(image)
+    result.extend( get_run_results_per_image(run_id, image_id))
+
+  return result
+
 # Given a  result run will create a list of images
 def image_list(run_info):
     image_keys = []
@@ -55,19 +64,13 @@ def get_header_images(run_id, image_uri):
         'recognition_image_uri' : transform_html_path(RUNS_BUCKET+'/'+run_id+'/consolidated/images/'+image_uri)
     }
 
-@st.cache_data
+
 def get_run_list():
-    # Create a Pandas DataFrame with static data
-    data = [
-        
-     #    {"run_id": 'bread_20231128-051003', "catalog_info": "", "observation": "none"},
-        {"run_id": 'bread__20231129-000523', "catalog_info": "", "observation": "18 products added"},
-        {"run_id": "coffee_20231127-235445", "catalog_info": "", "observation": "-"},
-        {"run_id": 'tea__20231128-081724', "catalog_info": "", "observation": "-"},
-        {"run_id": 'meat__20231128-100512', "catalog_info": "", "observation": "-"},
-        {"run_id": 'softdrinks__20231128-071602', "catalog_info": "", "observation": "-"},
-    ]
-    return data
+    # Create a Pandas DataFrame with firestore data
+    columns = ['id', 'catalog', 'category', 'observations', 'run_date', 'visible']
+
+    data = data_service.get_recognition_runs()
+    return pd.DataFrame(data,columns=columns)
 
 
 def navigate_to_list():
@@ -140,33 +143,44 @@ def build_detail_page():
     run_id = st.session_state['run_id']
     image_uri = st.session_state['image_uri']
     image_id = get_image_id(image_uri)
-    st.write(f'## Run ID: {run_id}')
-    st.write(f'### Image: {get_image_id(image_uri)}')
-    #TODO: Run Result table
+    st.write(f'## Run ID: {run_id} | Image: {image_id}')
+    
     # Builds Image Row
     image_uri_info = get_header_images(run_id, image_id)
     st.button('← Go back',on_click=navigate_to_run, args=[run_id])
-
-    cols = st.columns(3)
-    cols[0].header('Original Image')
-    cols[0].image(image_uri_info['original_image_uri'])
-    cols[1].header('Products Detected')
-    cols[1].image(image_uri_info['detection_image_uri'])
-    cols[2].header('Products Recognized')
-    cols[2].image(image_uri_info['recognition_image_uri'])
-
     run_results = get_run_results_per_image(run_id, image_id)
-    
-    st.write('## Run Details')
-    st.write(f''' Number of Results {len(run_results)} ''')
+    metrics = run_recognition_metrics(run_results)
 
-    with st.expander("Product Details"):
+
+    #Calculate Metrics
+    filtered_df = metrics[metrics['Products'] == 'No Product Matched']
+    num_no_products_found = filtered_df.sum()['Percentage of total']
+    unique_products = metrics['Products'].nunique()
+    
+    
+
+    # Image Headers
+    rst.write('Images')
+    cols = st.columns(3)
+    cols[0].image(image_uri_info['original_image_uri'], caption='Original Image')
+    cols[1].image(image_uri_info['detection_image_uri'], caption='Products Detected')
+    cols[2].image(image_uri_info['recognition_image_uri'], caption='Products Recognized')
+
+    st.divider()
+    st.write('Metrics')
+    cols = st.columns(3)
+    cols[0].metric('Product Facings', len(run_results))
+    cols[1].metric('Missing Products %', num_no_products_found)
+    cols[2].metric('Unique Products', unique_products if num_no_products_found == 0 else unique_products - 1)
+    
+
+    with st.expander("Product Details", expanded=False):
         st.write("This shows the unique product detected in the image")
-        metrics = run_recognition_metrics(run_results)
+        
         st.dataframe(data=metrics, use_container_width=True, hide_index=True)
         
 
-    with st.expander("Image Details"):
+    with st.expander("Image Details", expanded=True):
         col1,col2, col3, col4, col5 = st.columns([4,1,2,2,1])
         col1.subheader('Image')
         col2.subheader('Result')
@@ -193,24 +207,31 @@ def build_detail_page():
 
 def build_list_page():
     st.write("# All runs performed")
-    runs = get_run_list()
+    run_df = get_run_list()
+
+    #order the dataframe for descending date
+    run_df = run_df.sort_values(by=['run_date'], ascending=False)
+    
+    
     # Create columns for table and buttons
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     col1.subheader('Run ID')
     col2.subheader('Catalog Info')
     col3.subheader('Observation')
-    col4.subheader('Actions')
+    col4.subheader('Date')
+    col5.subheader('Category')
     
-    for run in runs:
-        col1.text(run['run_id'])
-        col2.text(run['catalog_info'])
-        col3.text(run['observation'])
-        col4.button('Detail', key=run['run_id'], on_click=navigate_to_run,args=[run['run_id']])
-        
-        
-
-        
-            
+    for index, row in run_df.iterrows():
+        with st.container():
+            col1, col2, col3, col4, col5, col6 = st.columns(6)
+            col1.text(row['id'])
+            col2.text(row['catalog'])
+            col3.text(row['observations'])
+            col4.text(row['run_date'].date())
+            col5.text(row['category'])
+            col6.button('Detail', key=row['id'], on_click=navigate_to_run,args=[row['id']], use_container_width=False)
+        # st.divider()r
+           
     
 def build_run_page():
     run_id = st.session_state['run_id']
@@ -219,16 +240,46 @@ def build_run_page():
     st.button('← Go back',on_click=navigate_to_list)
 
     results = image_list(get_run_results(run_id=run_id))
-    with st.container(border=True):
-        for result in results:
-            cols = st.columns([4,1,1])
-            image_uri = result[1]
-            cols[0].image(transform_html_path(image_uri), width=600)
-            cols[1].text(result[0])
-            cols[2].button('Detail', key=result[0], on_click=navigate_to_run_detail, args=[run_id, image_uri])
+
+
+    image_set = [row[1] for row in results]
+    run_results = get_run_results_per_image_set(run_id, image_set)
+    metrics = run_recognition_metrics(run_results)
+
+    #Calculate Metrics
+    filtered_df = metrics[metrics['Products'] == 'No Product Matched']
+    num_no_products_found = filtered_df.sum()['Percentage of total']
+    unique_products = metrics['Products'].nunique()
+
+    st.write('## Metrics')
+    cols = st.columns(4)
+    cols[0].metric('Images', len(image_set))
+    cols[1].metric('Product Facings', len(run_results))
+    cols[2].metric('Missing Products %', num_no_products_found)
+    cols[3].metric('Unique Products', unique_products if num_no_products_found == 0 else unique_products - 1)
+    
+    
+    with st.expander("Product Details", expanded=False):
+        st.dataframe(data=metrics, use_container_width=True, hide_index=True)
+    
+    with st.expander("Details", expanded=True):
+        cols = st.columns([2,1,1])
+        cols[0].subheader('Image')
+        cols[1].subheader('ID')
+        cols[2].subheader('Actions')
             
+        for result in results:
+            
+            image_uri = result[1]
+
+            with st.container():
+                cols = st.columns([2,1,1])
+                cols[0].image(transform_html_path(image_uri), width=600)
+                cols[1].text(result[0])
+                cols[2].button('Detail', key=result[0], on_click=navigate_to_run_detail, args=[run_id, image_uri])
+                
         
-    # st.button('Detail', on_click=navigate_to_run_detail, args=[run_id, image_uri] )
+    
 
 def build_rec_results_page():
     run_id = st.session_state['run_id']

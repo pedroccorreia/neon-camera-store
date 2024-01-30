@@ -162,7 +162,7 @@ def build_list_page():
 		category_filter = st.selectbox( 'What categories would you like to map', ('None', 'Bread', 'Cofee', 'Meat', 'Soft Drinks', 'Tea' ), index=selected_index)
 		st.session_state[ui_constants.PRODUCT_LABELLING_PAGE_CATEGORY_FILTER] = category_filter
 		
-		# working_set = st.slider('Choose a set of images', 5, 50, value=15, step=5)
+		working_set = st.slider('Choose a set of images', 5, 50, value=15, step=5)
 		form_submitted = st.form_submit_button('Get Bundles')
 		#get all the files in a the input bucket
 		filter_expression = None
@@ -180,8 +180,8 @@ def build_list_page():
 			category = re.findall( "bread|cofee|meat|soft.drink|tea", image_path, re.IGNORECASE)[0]
 			
 			filtered_image_paths.append( {  'path': image_path, 'filename' : image_path, 'category' : category, 'similar_images' : bundle['similar_images'] })
-			# if len(filtered_image_paths) == working_set:
-			# 	break
+			if len(filtered_image_paths) == working_set:
+				break
 
 
 		

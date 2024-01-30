@@ -50,6 +50,7 @@ CATALOG_UPDATE_BUCKET = config_info['catalog']['update_bucket']
 #Firestore Constants
 COLLECTION_DISCARDED = 'discarded'
 COLLECTION_CATALOG = 'catalog'
+COLLECTION_RUNS = 'runs'
 
 #Matching engine
 MATCHING_ENGINE_API_ENDPOINT = config_info['matching_engine']['api_endpoint']

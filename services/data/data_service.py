@@ -45,3 +45,7 @@ class DataService():
     @abstractmethod
     def remove_catalog(self, catalog_entry):
         """Removes a catalog image from the data source."""
+
+    @abstractmethod
+    def get_recognition_runs(self):
+        """Shows all recognition runs"""

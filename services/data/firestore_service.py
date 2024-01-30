@@ -143,6 +143,14 @@ class FirestoreService(DataService):
 
     def catalog_length(self):
         return len(self.db.collection(constants.COLLECTION_CATALOG).get())
+    
+    def get_recognition_runs(self):
+        entries = self.db.collection(constants.COLLECTION_RUNS).stream()
+        discarded = []
+        for entry in entries:
+            discarded.append(entry.to_dict())
+        #return the discarded
+        return discarded
         
         
         
