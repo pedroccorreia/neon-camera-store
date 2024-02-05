@@ -65,11 +65,6 @@ class FirestoreService(DataService):
         entry_ref = self.db.collection(constants.COLLECTION_DISCARDED).document(image_id).get()
         return entry_ref.exists
         
-    def get_image_id(self, image_uri):
-        """Extracts the image ID from a given string, removing the extension."""
-        base_filename = os.path.basename(image_uri)  # Get the base filename
-        filename, extension = os.path.splitext(base_filename)  # Extract filename
-        return filename
     
     def get_image_id_from_run(self, image_uri):
         """Extracts the image ID from a given string, removing the extension."""

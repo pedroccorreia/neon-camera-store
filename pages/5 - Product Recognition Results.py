@@ -1,11 +1,10 @@
 import math
-import datetime
 import constants
+from services.runs.run_service import RunService
 import utils
 import streamlit as st
 from services.data.firestore_service import FirestoreService
-from services.gcs_service import load_json_blob 
-from constants import RUNS_BUCKET, CONSOLIDATED_FOLDER, IMAGE_EXTENSION
+from constants import RUNS_BUCKET,IMAGE_EXTENSION
 from services.match.matching_service import MatchingService
 from utils import run_recognition_metrics, transform_html_path, get_image_id
 import ui_constants
@@ -18,42 +17,9 @@ st.set_page_config(
     layout="wide",    
 )
 
-#init the data service
+#init the services
 data_service = FirestoreService()
-
-@st.cache_data
-def get_run_results(run_id):
-    file_path = run_id + '/'+ CONSOLIDATED_FOLDER + '/final.jsonl'
-    result = load_json_blob(RUNS_BUCKET, file_path)
-    return result
-
-def get_run_results_per_image(run_id, filtering_image_id):
-    run_results = get_run_results(run_id=run_id)
-    results = []
-    for entry in run_results:
-        filename = get_image_id(entry['original_image_uri'])
-        if filtering_image_id == filename:
-            results.append(entry)
-    return results
-
-def get_run_results_per_image_set(run_id, image_set):
-  result =[]
-  for image in image_set:
-    image_id = get_image_id(image)
-    result.extend( get_run_results_per_image(run_id, image_id))
-
-  return result
-
-# Given a  result run will create a list of images
-def image_list(run_info):
-    image_keys = []
-    image_uri = []
-    for entry in run_info:
-        image_id = entry['imageUri'].split("/")[-2]
-        if image_id not in image_keys:
-            image_keys.append(image_id)
-            image_uri.append(entry['original_image_uri'])
-    return list(zip(image_keys,image_uri))
+run_service = RunService()
 
 
 def get_header_images(run_id, image_uri):
@@ -148,7 +114,7 @@ def build_detail_page():
     # Builds Image Row
     image_uri_info = get_header_images(run_id, image_id)
     st.button('← Go back',on_click=navigate_to_run, args=[run_id])
-    run_results = get_run_results_per_image(run_id, image_id)
+    run_results = run_service.get_run_results_per_image(run_id, image_id)
     metrics = run_recognition_metrics(run_results)
 
 
@@ -176,7 +142,6 @@ def build_detail_page():
 
     with st.expander("Product Details", expanded=False):
         st.write("This shows the unique product detected in the image")
-        
         st.dataframe(data=metrics, use_container_width=True, hide_index=True)
         
 
@@ -203,7 +168,6 @@ def build_detail_page():
                 col5.button('Detail', key=entry['imageUri'] + '-detail', on_click=navigate_to_rec_detail, args=[entry])
                 col6.button('Label', key= entry['imageUri'] + '-label', type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
                 
-    
 
 def build_list_page():
     st.write("# All runs performed")
@@ -239,11 +203,11 @@ def build_run_page():
     st.write(f'''Run: {run_id}''')
     st.button('← Go back',on_click=navigate_to_list)
 
-    results = image_list(get_run_results(run_id=run_id))
+    results = run_service.image_list(run_service.get_run_results(run_id=run_id))
 
 
     image_set = [row[1] for row in results]
-    run_results = get_run_results_per_image_set(run_id, image_set)
+    run_results = run_service.get_run_results_per_image_set(run_id, image_set)
     metrics = run_recognition_metrics(run_results)
 
     #Calculate Metrics

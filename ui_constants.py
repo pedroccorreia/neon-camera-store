@@ -24,3 +24,7 @@ STATE_ARTICLE_CHOSEN_KEY ='article_chosen'
 STATE_RECOGNITION_RESULTS_KEY = 'recognition_results'
 STATE_CHOSEN_IMAGE_TO_LABEL = 'chosen_image_to_label'
 STATE_CHOSEN_SIMILAR_IMAGES = 'similar_images'
+
+
+#Comparison
+STATE_COMPARISON_CHOSEN = 'comparison_chosen'
