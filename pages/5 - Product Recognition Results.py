@@ -35,7 +35,8 @@ def get_run_list():
     # Create a Pandas DataFrame with firestore data
     columns = ['id', 'catalog', 'category', 'observations', 'run_date', 'visible']
 
-    data = data_service.get_recognition_runs()
+    data = data_service.get_recognition_runs(filter_visible=True)
+    
     return pd.DataFrame(data,columns=columns)
 
 
@@ -117,14 +118,11 @@ def build_detail_page():
     run_results = run_service.get_run_results_per_image(run_id, image_id)
     metrics = run_recognition_metrics(run_results)
 
-
     #Calculate Metrics
     filtered_df = metrics[metrics['Products'] == 'No Product Matched']
-    num_no_products_found = filtered_df.sum()['Percentage of total']
+    num_no_products_found = (100-filtered_df.sum()['Percentage of total'])
     unique_products = metrics['Products'].nunique()
     
-    
-
     # Image Headers
     st.write('Images')
     cols = st.columns(3)
@@ -136,38 +134,48 @@ def build_detail_page():
     st.write('Metrics')
     cols = st.columns(3)
     cols[0].metric('Product Facings', len(run_results))
-    cols[1].metric('Missing Products %', num_no_products_found)
+    cols[1].metric('Products Found %', num_no_products_found)
     cols[2].metric('Unique Products', unique_products if num_no_products_found == 0 else unique_products - 1)
     
-
     with st.expander("Product Details", expanded=False):
         st.write("This shows the unique product detected in the image")
         st.dataframe(data=metrics, use_container_width=True, hide_index=True)
-        
 
-    with st.expander("Image Details", expanded=True):
-        col1,col2, col3, col4, col5 = st.columns([4,1,2,2,1])
-        col1.subheader('Image')
-        col2.subheader('Result')
-        col3.subheader('Product')
-        col4.subheader('Confidence')
-        col5.subheader('Actions')
-        for entry in run_results:
-            col1,col2, col3, col4, col5, col6= st.columns([4,1,2,2,1,1])
-            
-            col1.image(transform_html_path(entry['imageUri'])) # Consolidated view
-            if(len(entry['productRecognitionAnnotations'][0]['recognitionResults']) == 0):
-                col2.text('🔴')
-                col6.button('Label', key= entry['imageUri'] + '-label',type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
-            else:
-                rec_result = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]
-                prod_data = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]['productMetadata']
-                col2.text(f'''🟢''')
-                col3.text(prod_data['title'])
-                col4.text(round(rec_result['confidence'],ndigits=2))
-                col5.button('Detail', key=entry['imageUri'] + '-detail', on_click=navigate_to_rec_detail, args=[entry])
-                col6.button('Label', key= entry['imageUri'] + '-label', type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
+    with st.expander("Products Detected", expanded=True):
+        grid_columns = 3
+        total_rows = math.ceil(len(run_results)/grid_columns)
+        cols = st.columns(3)
+        current_index = 0
+        for i in range(total_rows):
+            row_container  = st.container()
+            cols = row_container.columns(grid_columns)
+            for col_index in range(grid_columns):
+                if current_index < len(run_results):
+                    with cols[col_index]:
+                        with st.container(border=True):
+                            entry = run_results[current_index]
+                            product_found_flag = len(entry['productRecognitionAnnotations'][0]['recognitionResults']) != 0
+                            if(not(product_found_flag)):
+                                image_col, spacer, detail_col = st.columns([2,1,4])
+                                detail_col.text('No product Found')
+                                image_col.image(transform_html_path(entry['imageUri'])) # Consolidated view
+                                detail_col.text('🔴')
+                                detail_col.button('Detail', key=entry['imageUri'] + '-detail', on_click=navigate_to_rec_detail, args=[entry])
+                                detail_col.button('Label', key= entry['imageUri'] + '-label', type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
                 
+                            else:
+                                rec_result = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]
+                                prod_data = entry['productRecognitionAnnotations'][0]['recognitionResults'][0]['productMetadata']
+                    
+                                image_col, spacer, detail_col = st.columns([2,1,4])
+                                detail_col.text(prod_data['title'])
+                                image_col.image(transform_html_path(entry['imageUri'])) # Consolidated view
+                                # r
+                                detail_col.text(round(rec_result['confidence'],ndigits=2))
+                                detail_col.button('Detail', key=entry['imageUri'] + '-detail', on_click=navigate_to_rec_detail, args=[entry])
+                                detail_col.button('Label', key= entry['imageUri'] + '-label', type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
+                        current_index = current_index + 1
+                                    
 
 def build_list_page():
     st.write("# All runs performed")
@@ -212,14 +220,14 @@ def build_run_page():
 
     #Calculate Metrics
     filtered_df = metrics[metrics['Products'] == 'No Product Matched']
-    num_no_products_found = filtered_df.sum()['Percentage of total']
+    num_no_products_found = (100-filtered_df.sum()['Percentage of total'])
     unique_products = metrics['Products'].nunique()
 
     st.write('## Metrics')
     cols = st.columns(4)
     cols[0].metric('Images', len(image_set))
     cols[1].metric('Product Facings', len(run_results))
-    cols[2].metric('Missing Products %', num_no_products_found)
+    cols[2].metric('Products Found %', num_no_products_found)
     cols[3].metric('Unique Products', unique_products if num_no_products_found == 0 else unique_products - 1)
     
     
@@ -274,14 +282,8 @@ def build_label_search_page():
     st.write("## Choose Images")
     image_id = st.session_state[ui_constants.STATE_CHOSEN_IMAGE_TO_LABEL]
 
-    
-    
-
-    
     contains_image = data_service.contains_catalog(data_service.get_image_id_from_run(image_id))
-    
 
-    
     with st.container():
        cols = st.columns([1,2,2,4,6])
        cols[0].button('← Go Back', on_click=navigate_exit_labelling)

@@ -1,6 +1,6 @@
 from services.data.data_service import DataService
 import constants
-import os
+import utils
 from google.cloud import firestore
 
 
@@ -21,7 +21,7 @@ class FirestoreService(DataService):
 
     def add_discarded(self, image_uri):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=image_uri)
+        image_id = utils.get_image_id(image_uri=image_uri)
         # add the entry to the discarded collection
         entry_ref = self.db.collection(constants.COLLECTION_DISCARDED).document(image_id)
         entry_ref.set({"image_uri" : image_uri})
@@ -30,7 +30,7 @@ class FirestoreService(DataService):
     
     def remove_discarded(self, image_uri):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=image_uri)
+        image_id = utils.get_image_id(image_uri=image_uri)
 
         entry_ref = self.db.collection(constants.COLLECTION_DISCARDED).document(image_id)
         #get entry key
@@ -60,7 +60,7 @@ class FirestoreService(DataService):
     
     def contains_discarded(self, image_uri):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=image_uri)
+        image_id = utils.get_image_id(image_uri=image_uri)
         # check if the discarded collection has a matching entry
         entry_ref = self.db.collection(constants.COLLECTION_DISCARDED).document(image_id).get()
         return entry_ref.exists
@@ -94,7 +94,7 @@ class FirestoreService(DataService):
     
     def add_catalog(self, catalog_entry, source):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=catalog_entry['original_image_uri'])
+        image_id = utils.get_image_id(image_uri=catalog_entry['original_image_uri'])
         # add the entry to the catalog collection
         entry_ref = self.db.collection(constants.COLLECTION_CATALOG).document(image_id)
         # convert numpy to int
@@ -116,7 +116,7 @@ class FirestoreService(DataService):
     
     def remove_catalog(self, image_uri):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=image_uri)
+        image_id = utils.get_image_id(image_uri=image_uri)
 
         entry_ref = self.db.collection(constants.COLLECTION_CATALOG).document(image_id)
         #get entry key
@@ -127,7 +127,7 @@ class FirestoreService(DataService):
     
     def contains_catalog(self, image_uri):
         # get the image id based on image_uri
-        image_id = self.get_image_id(image_uri=image_uri)
+        image_id = utils.get_image_id(image_uri=image_uri)
         # check if the catalog collection has a matching entry
         entry_ref = self.db.collection(constants.COLLECTION_CATALOG).document(image_id).get()
         return entry_ref.exists
@@ -139,13 +139,19 @@ class FirestoreService(DataService):
     def catalog_length(self):
         return len(self.db.collection(constants.COLLECTION_CATALOG).get())
     
-    def get_recognition_runs(self):
+    def get_recognition_runs(self, filter_visible = False):
         entries = self.db.collection(constants.COLLECTION_RUNS).stream()
-        discarded = []
+        result = []
         for entry in entries:
-            discarded.append(entry.to_dict())
-        #return the discarded
-        return discarded
+            if filter_visible:
+                #only add if visible
+                if entry.get("visible"):
+                    result.append(entry.to_dict())
+            else: 
+                #add it regardless of visibility status
+                result.append(entry.to_dict())
+        
+        return result
         
         
         

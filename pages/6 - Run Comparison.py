@@ -17,16 +17,9 @@ st.set_page_config(page_title="Image-Comparison Example",layout="wide",)
 
 st.write('Functionality being developed')
 
-# def get_run_list_dataframe():
-#     # Create a Pandas DataFrame with firestore data
-#     columns = ['id', 'catalog', 'category', 'observations', 'run_date', 'visible']
-
-#     data = data_service.get_recognition_runs()
-#     return pd.DataFrame(data,columns=columns)
-
 @st.cache_data
 def get_run_data():
-    data = data_service.get_recognition_runs()
+    data = data_service.get_recognition_runs(filter_visible=True)
     run_list = [row['id'] for row in data]
     return run_list
 
@@ -52,7 +45,7 @@ def compare_runs(first_option, second_run_option):
     first_run_df = run_recognition_metrics(first_run_results)
 
     first_run_filtered_df = first_run_df[first_run_df['Products'] == 'No Product Matched']
-    first_run_num_no_products_found = first_run_filtered_df.sum()['Percentage of total']
+    first_run_num_no_products_found = (100-first_run_filtered_df.sum()['Percentage of total'])
     first_run_unique_products = first_run_df['Products'].nunique()
 
     #Second Run Data & Metrics
@@ -64,7 +57,7 @@ def compare_runs(first_option, second_run_option):
     second_run_df = run_recognition_metrics(second_run_results)
 
     second_run_filtered_df = second_run_df[second_run_df['Products'] == 'No Product Matched']
-    second_run_num_no_products_found = second_run_filtered_df.sum()['Percentage of total']
+    second_run_num_no_products_found = (100-second_run_filtered_df.sum()['Percentage of total'])
     second_run_unique_products = second_run_df['Products'].nunique()
 
     #Merge Data
@@ -81,7 +74,7 @@ def compare_runs(first_option, second_run_option):
         cols = st.columns(4)
         cols[0].metric(label="Images", value=len(second_run_image_set), delta=len(second_run_image_set)-len(first_run_image_set))
         cols[1].metric(label="Product Facings", value=len(second_run_results), delta=len(second_run_results)-len(first_run_results))
-        cols[2].metric(label="Missing Products %", value=second_run_num_no_products_found, delta=second_run_num_no_products_found-first_run_num_no_products_found)
+        cols[2].metric(label="Products Found %", value=second_run_num_no_products_found, delta=second_run_num_no_products_found-first_run_num_no_products_found)
         cols[3].metric(label="Unique Products", value=second_run_unique_products, delta=second_run_unique_products-first_run_unique_products)
 
     st.write("Comparison")
@@ -94,7 +87,7 @@ def compare_runs(first_option, second_run_option):
         metrics_cols = st.columns(4)
         metrics_cols[0].metric('Images', len(first_run_image_set))
         metrics_cols[1].metric('Product Facings', len(first_run_results))
-        metrics_cols[2].metric('Missing Products %', first_run_num_no_products_found)
+        metrics_cols[2].metric('Products Found%', first_run_num_no_products_found)
         metrics_cols[3].metric('Unique Products', first_run_unique_products if first_run_num_no_products_found == 0 else first_run_unique_products - 1)
         st.write("Products")
         st.dataframe(data=first_run_df, use_container_width=True, hide_index=True)
@@ -102,7 +95,7 @@ def compare_runs(first_option, second_run_option):
         metrics_cols = st.columns(4)
         metrics_cols[0].metric('Images', len(second_run_image_set))
         metrics_cols[1].metric('Product Facings', len(second_run_results))
-        metrics_cols[2].metric('Missing Products %', second_run_num_no_products_found)
+        metrics_cols[2].metric('Products Found %', second_run_num_no_products_found)
         metrics_cols[3].metric('Unique Products', second_run_unique_products if second_run_num_no_products_found == 0 else second_run_unique_products - 1)
         st.write("Products")
         st.dataframe(data=second_run_df, use_container_width=True, hide_index=True)
