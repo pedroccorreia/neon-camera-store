@@ -7,6 +7,10 @@ from services.runs.run_service import RunService
 import ui_constants
 from utils import run_recognition_metrics
 
+import plotly.express as px
+import pandas as pd
+    
+
 #init the data service
 data_service = FirestoreService()
 run_service = RunService()
@@ -17,7 +21,6 @@ st.set_page_config(page_title="Image-Comparison Example",layout="wide",)
 
 st.write('Functionality being developed')
 
-@st.cache_data
 def get_run_data():
     data = data_service.get_recognition_runs(filter_visible=True)
     run_list = [row['id'] for row in data]
@@ -36,10 +39,11 @@ def handle_comparison(first_option, second_run_option):
 
 def compare_runs(first_option, second_run_option):
     #First Run Data & Metrics
-    print(f'Getting First Run data')
     first_run_results = get_run_results(first_option)
+    
 
     first_run_image_info = run_service.image_list(first_run_results)
+    
     first_run_image_set = [row[1] for row in first_run_image_info]
     first_run_results = run_service.get_run_results_per_image_set(first_option, first_run_image_set)
     first_run_df = run_recognition_metrics(first_run_results)
@@ -49,7 +53,6 @@ def compare_runs(first_option, second_run_option):
     first_run_unique_products = first_run_df['Products'].nunique()
 
     #Second Run Data & Metrics
-    print(f'Getting Second Run data')
     second_run_results = get_run_results(second_run_option)
     second_run_image_info = run_service.image_list(second_run_results)
     second_run_image_set = [row[1] for row in second_run_image_info]
@@ -59,7 +62,8 @@ def compare_runs(first_option, second_run_option):
     second_run_filtered_df = second_run_df[second_run_df['Products'] == 'No Product Matched']
     second_run_num_no_products_found = (100-second_run_filtered_df.sum()['Percentage of total'])
     second_run_unique_products = second_run_df['Products'].nunique()
-
+    st.toast(f'Loaded Data', icon='🔥')
+    
     #Merge Data
     print(f'Merging Data')
     merged_df = pd.merge(first_run_df, second_run_df, on='Products', how='outer', suffixes=('_first', '_second'))
@@ -80,6 +84,10 @@ def compare_runs(first_option, second_run_option):
     st.write("Comparison")
     with st.container(border=2):
         st.dataframe(data=merged_df, use_container_width=True, hide_index=True)
+
+    with st.expander(label='Funnel Chart', expanded=False):
+        funnel_chart(merged_df)
+
    
     st.write("Run Details")
     cols = st.columns(2)
@@ -100,7 +108,23 @@ def compare_runs(first_option, second_run_option):
         st.write("Products")
         st.dataframe(data=second_run_df, use_container_width=True, hide_index=True)
 
+@st.cache_data
+def funnel_chart(merged_df):
+    merged_df = merged_df.sort_values(by='Facings_first', ascending=False)
+    merged_df = merged_df[merged_df['Products'] != 'No Product Matched']
+    merged_df = merged_df.head(25)
 
+    left_pd = merged_df[ ['Products','Facings_first'] ]
+    left_pd['run'] = 'First'
+    left_pd['facings'] = left_pd['Facings_first']
+    right_pd = merged_df[ ['Products','Facings_second'] ]
+    right_pd['run'] = 'Second'
+    right_pd['facings'] = right_pd['Facings_second']
+    df = pd.concat([left_pd, right_pd], axis=0)
+    fig = px.funnel(df, x='facings', y='Products', color='run')
+
+    st.plotly_chart(fig, theme="streamlit")
+    
 # Main
 
 with st.container():

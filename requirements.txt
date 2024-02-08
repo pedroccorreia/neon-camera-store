@@ -12,3 +12,4 @@ opencv-python
 google-cloud-vision
 tqdm
 google-cloud-firestore
+plotly

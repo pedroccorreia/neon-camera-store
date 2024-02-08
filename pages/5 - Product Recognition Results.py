@@ -171,6 +171,8 @@ def build_detail_page():
                                 detail_col.text(prod_data['title'])
                                 image_col.image(transform_html_path(entry['imageUri'])) # Consolidated view
                                 # r
+                                # detail_col.text(round(rec_result['confidence'],ndigits=2))
+                                detail_col.progress(round(rec_result['confidence'],ndigits=2), text='Confidence')
                                 detail_col.text(round(rec_result['confidence'],ndigits=2))
                                 detail_col.button('Detail', key=entry['imageUri'] + '-detail', on_click=navigate_to_rec_detail, args=[entry])
                                 detail_col.button('Label', key= entry['imageUri'] + '-label', type='primary', on_click=navigate_to_product_labelling, args=[entry['imageUri']])
