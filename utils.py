@@ -26,6 +26,11 @@ def transform_bundle_entry_to_catalog( image_path, article_id):
     new_image_uri = CATALOG_BUCKET+'/'+ utils.get_image_id(image_path)+ IMAGE_EXTENSION
     return {'article_id': article_id, 'image_uri' : new_image_uri, 'original_image_uri' : image_path}
 
+def transform_bundle_html_path(bundle):
+    bundle['original_image'] = transform_html_path(bundle['original_image'])
+    for image in bundle['similar_images']:
+        image['image_path'] = transform_html_path(image['image_path'])
+    return bundle
 
 def transform_bundle_to_catalog( bundle, article_id):
     bundle = utils.transform_bundle_gcs_uri(bundle) 
